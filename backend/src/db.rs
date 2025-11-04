@@ -7,5 +7,7 @@ pub async fn init() -> Result<PgPool> {
         .max_connections(5)
         .connect(&db_url)
         .await?;
+
+    sqlx::migrate!("./migrations").run(&pool).await?;
     Ok(pool)
 }
