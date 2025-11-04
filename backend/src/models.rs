@@ -1,13 +1,14 @@
 use chrono::{DateTime, Utc};
+use sqlx::FromRow;
 
-#[derive(Debug)]
-struct _Accounts {
-    address: String,
-    lamports: u64,
-    owner: String,
-    executable: bool,
-    rent_epoch: u64,
-    data_length: u64,
-    indexed_at: DateTime<Utc>,
-    last_updated_at: DateTime<Utc>,
+#[derive(Debug, FromRow)]
+pub struct Accounts {
+    pub address: String,
+    pub lamports: i64,
+    pub owner: String,
+    pub executable: bool,
+    pub data_length: i64,
+    pub rent_epoch: i64,
+    pub indexed_at: DateTime<Utc>,
+    pub last_updated_at: DateTime<Utc>,
 }

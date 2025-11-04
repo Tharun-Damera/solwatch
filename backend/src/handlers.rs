@@ -1,18 +1,26 @@
 use axum::{
     extract::{
-        Json, Path,
+        Json, Path, State,
         ws::{WebSocket, WebSocketUpgrade},
     },
     response::IntoResponse,
 };
 use serde::Serialize;
+use sqlx::PgPool;
 
-pub async fn websocket_handler(ws: WebSocketUpgrade) -> impl IntoResponse {
-    ws.on_upgrade(handle_socket)
+use crate::db::accounts::check_account_exists;
+
+pub async fn websocket_handler(
+    ws: WebSocketUpgrade,
+    State(pool): State<PgPool>,
+    Path(address): Path<String>,
+) -> impl IntoResponse {
+    ws.on_upgrade(move |socket| handle_socket(socket, pool, address))
 }
 
-async fn handle_socket(mut socket: WebSocket) {
+async fn handle_socket(mut socket: WebSocket, _pool: PgPool, address: String) {
     while let Some(Ok(message)) = socket.recv().await {
+        println!("address: {:?}", address);
         println!("message: {:?}", message);
     }
 }
@@ -22,9 +30,12 @@ struct AccountStatus {
     indexed: bool,
 }
 
-pub async fn get_account_status(Path(address): Path<String>) -> impl IntoResponse {
+pub async fn get_account_status(
+    Path(address): Path<String>,
+    State(pool): State<PgPool>,
+) -> impl IntoResponse {
     println!("Got address: {address}");
 
-    let indexed = true;
+    let indexed = check_account_exists(&pool, address).await;
     Json(AccountStatus { indexed })
 }
