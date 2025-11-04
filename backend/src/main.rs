@@ -1,11 +1,17 @@
 use anyhow::Result;
 
+mod db;
 mod handlers;
+mod models;
 mod routes;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let app = routes::create_router();
+    dotenvy::dotenv()?;
+
+    let pool = db::init().await?;
+    let app = routes::create_router(pool);
+
     let listener = tokio::net::TcpListener::bind("localhost:5000").await?;
     axum::serve(listener, app).await?;
 
