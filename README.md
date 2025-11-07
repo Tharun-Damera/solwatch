@@ -1,4 +1,4 @@
-# Solwatch 🛰️
+# Solwatch 🛰️ (Still in Development)
 
 A selective Solana indexer and dashboard that tracks any wallet's on-chain activity in real-time.
 Built with Rust (Axum, Tokio, SQLx) + React + PostgreSQL.
