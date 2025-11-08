@@ -1,6 +1,7 @@
 mod db;
 mod error;
 mod handlers;
+mod message;
 mod models;
 mod routes;
 mod solana;

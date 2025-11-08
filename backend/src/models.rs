@@ -34,7 +34,7 @@ pub struct AccountCreate {
     pub rent_epoch: i64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct TransactionSignatureCreate {
     pub signature: String,
     pub account_address: String,
