@@ -1,4 +1,5 @@
-use sqlx::{PgPool, QueryBuilder};
+use sqlx::{PgPool, QueryBuilder, postgres::PgQueryResult};
+use tracing::{Level, event};
 
 use crate::error::AppError;
 use crate::models::{Account, AccountCreate, TransactionSignatureCreate};
@@ -14,11 +15,11 @@ pub async fn check_account_exists(pool: &PgPool, address: String) -> bool {
     let account = get_account(pool, address).await;
     match account {
         Ok(acc) => {
-            println!("{:?}", acc);
+            event!(Level::INFO, "Account Found in DB: {acc:?}");
             true
         }
         Err(e) => {
-            println!("Error: {:?}", e);
+            event!(Level::ERROR, "Account Not Found in DB: {e:?}");
             false
         }
     }
@@ -52,7 +53,6 @@ pub async fn insert_account(pool: &PgPool, account: AccountCreate) -> Result<Acc
     )
     .fetch_one(pool)
     .await?;
-    dbg!(&account);
 
     Ok(account)
 }
@@ -60,7 +60,7 @@ pub async fn insert_account(pool: &PgPool, account: AccountCreate) -> Result<Acc
 pub async fn insert_transactions(
     pool: &PgPool,
     signatures: &[TransactionSignatureCreate],
-) -> Result<(), AppError> {
+) -> Result<PgQueryResult, AppError> {
     let mut qb = QueryBuilder::new(
         "INSERT INTO transaction_signatures (
             signature,
@@ -80,9 +80,7 @@ pub async fn insert_transactions(
     qb.push(";");
 
     let query = qb.build();
-
     let txn_signs = query.execute(pool).await?;
-    dbg!(&txn_signs);
 
-    Ok(())
+    Ok(txn_signs)
 }

@@ -7,6 +7,7 @@ use axum::{
 };
 use serde::Serialize;
 use sqlx::PgPool;
+use tracing::{Level, event, instrument};
 
 use crate::db::accounts::check_account_exists;
 use crate::solana;
@@ -30,11 +31,12 @@ struct AccountStatus {
     indexed: bool,
 }
 
+#[instrument(skip(pool))]
 pub async fn get_account_status(
     Path(address): Path<String>,
     State(pool): State<PgPool>,
 ) -> impl IntoResponse {
-    println!("Got address: {address}");
+    event!(Level::INFO, "Checking account indexer status: {address}");
 
     let indexed = check_account_exists(&pool, address).await;
     Json(AccountStatus { indexed })
