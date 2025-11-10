@@ -19,6 +19,9 @@ pub enum AppError {
 
     #[error("Internal Error: {0}")]
     InternalError(String),
+
+    #[error("Bad Request: {0}")]
+    BadRequestError(String),
 }
 
 impl From<SqlxError> for AppError {

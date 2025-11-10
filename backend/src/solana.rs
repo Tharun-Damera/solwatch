@@ -8,7 +8,7 @@ use sqlx::PgPool;
 use tracing::{Level, event, instrument};
 
 use crate::{
-    db::accounts::{insert_account, insert_transactions},
+    db::accounts::{check_account_exists, insert_account, insert_transactions},
     error::AppError,
     message::IndexingMessage,
     models::{AccountCreate, TransactionSignatureCreate},
@@ -52,11 +52,15 @@ pub async fn index_address(
 ) -> Result<(), AppError> {
     event!(Level::INFO, "Begin indexing the address");
 
-    let connection = RpcClient::new(DEV_NET);
-
     let public_key = Pubkey::from_str(address)?;
+    if check_account_exists(pool, address.to_string()).await {
+        return Err(AppError::BadRequestError(
+            "Account is already indexed".to_string(),
+        ));
+    }
     send_message(socket, IndexingMessage::Started { address: &address }).await;
 
+    let connection = RpcClient::new(DEV_NET);
     let account = connection.get_account(&public_key)?;
     event!(Level::INFO, ?account);
 
