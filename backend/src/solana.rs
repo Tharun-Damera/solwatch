@@ -3,7 +3,8 @@ use std::str::FromStr;
 use axum::extract::ws::{Message, WebSocket};
 use serde::Serialize;
 use solana_client::rpc_client::GetConfirmedSignaturesForAddress2Config;
-use solana_sdk::pubkey::Pubkey;
+use solana_sdk::{pubkey::Pubkey, signature::Signature};
+use solana_transaction_status::UiTransactionEncoding;
 use tracing::{Level, event, instrument};
 
 use crate::{
@@ -106,7 +107,7 @@ pub async fn index_address(
     // Parse the actual transaction signatures to DB format
     for sign in signatures {
         txn_signs.push(TransactionSignatureCreate {
-            signature: sign.signature,
+            signature: sign.signature.clone(),
             account_address: address.to_string(),
             slot: sign.slot as i64,
             block_time: sign.block_time,
@@ -114,6 +115,13 @@ pub async fn index_address(
                 &sign.confirmation_status,
             )?)?,
         });
+
+        let signature = Signature::from_str(&sign.signature)?;
+        let txn = state
+            .rpc
+            .get_transaction(&signature, UiTransactionEncoding::JsonParsed)
+            .await?;
+        event!(Level::INFO, ?txn);
     }
 
     // Insert the parsed transactions into DB

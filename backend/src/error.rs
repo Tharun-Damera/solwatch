@@ -4,7 +4,7 @@ use thiserror::Error;
 
 use serde_json::Error as SerdeJsonError;
 use solana_client::client_error::ClientError;
-use solana_sdk::pubkey::ParsePubkeyError;
+use solana_sdk::{pubkey::ParsePubkeyError, signature::ParseSignatureError};
 
 // Create an AppError using thiserror that handles almost all errors
 #[derive(Error, Debug)]
@@ -70,6 +70,13 @@ impl From<ParsePubkeyError> for AppError {
 // Map the Solana ClientError to the SolanaError variant of the AppError
 impl From<ClientError> for AppError {
     fn from(e: ClientError) -> Self {
+        AppError::SolanaError(e.to_string())
+    }
+}
+
+// Map the Solana ParseSignatureError to SolanaError
+impl From<ParseSignatureError> for AppError {
+    fn from(e: ParseSignatureError) -> Self {
         AppError::SolanaError(e.to_string())
     }
 }
