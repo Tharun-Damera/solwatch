@@ -3,6 +3,7 @@ use mongodb::{Client, Database};
 use crate::error::AppError;
 
 pub mod accounts;
+pub mod transactions;
 
 pub async fn init() -> Result<(Client, Database), AppError> {
     // Get the Mongo URI and DB name from the env

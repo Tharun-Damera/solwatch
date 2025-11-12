@@ -315,6 +315,7 @@ dependencies = [
  "bson 3.0.0",
  "chrono",
  "dotenvy",
+ "futures",
  "mongodb",
  "serde",
  "serde_json",

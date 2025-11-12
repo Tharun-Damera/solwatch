@@ -1,16 +1,19 @@
 use axum::{
     extract::{
-        Json, Path, State,
+        Json, Path, Query, State,
         ws::{WebSocket, WebSocketUpgrade},
     },
     response::IntoResponse,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tracing::{Level, event, instrument};
 
 use crate::{
     AppState,
-    db::accounts::{check_account_exists, get_account},
+    db::{
+        accounts::{check_account_exists, get_account},
+        transactions::{get_transaction_signatures, get_transactions},
+    },
     error::AppError,
     solana,
 };
@@ -61,4 +64,37 @@ pub async fn get_account_data(
     } else {
         Err(AppError::NotFoundError("Account Not Found!".to_string()))
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Pagination {
+    skip: u64,
+    limit: i64,
+}
+
+#[instrument(skip(state))]
+pub async fn transaction_signatures(
+    State(state): State<AppState>,
+    Path(address): Path<String>,
+    Query(pagination): Query<Pagination>,
+) -> Result<impl IntoResponse, AppError> {
+    let state = state.clone();
+
+    let txns =
+        get_transaction_signatures(&state.db, address, pagination.skip, pagination.limit).await?;
+
+    Ok(Json(txns))
+}
+
+#[instrument(skip(state))]
+pub async fn transactions(
+    State(state): State<AppState>,
+    Path(address): Path<String>,
+    Query(pagination): Query<Pagination>,
+) -> Result<impl IntoResponse, AppError> {
+    let state = state.clone();
+
+    let txns = get_transactions(&state.db, address, pagination.skip, pagination.limit).await?;
+
+    Ok(Json(txns))
 }

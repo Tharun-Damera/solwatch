@@ -10,8 +10,9 @@ use tracing::{Level, event, instrument};
 
 use crate::{
     AppState,
-    db::accounts::{
-        check_account_exists, insert_account, insert_transactions, insert_transactions_signatures,
+    db::{
+        accounts::{check_account_exists, insert_account},
+        transactions::{insert_transactions, insert_transactions_signatures},
     },
     error::AppError,
     message::IndexingMessage,
