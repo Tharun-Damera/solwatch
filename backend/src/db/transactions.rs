@@ -70,3 +70,16 @@ pub async fn get_transactions(
 
     Ok(signatures)
 }
+
+pub async fn get_transaction(
+    db: &Database,
+    address: String,
+    signature: String,
+) -> Result<Option<Transaction>, AppError> {
+    let signature = db
+        .collection::<Transaction>(TRANSACTION_COLLECTION)
+        .find_one(doc! {"_id": signature, "account_address": address})
+        .await?;
+
+    Ok(signature)
+}

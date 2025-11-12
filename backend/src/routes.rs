@@ -16,5 +16,9 @@ pub fn create_router(state: AppState) -> Router {
             get(transaction_signatures),
         )
         .route("/api/accounts/{address}/transactions", get(transactions))
+        .route(
+            "/api/accounts/{address}/transactions/{signature}",
+            get(transaction_from_signature),
+        )
         .with_state(state)
 }

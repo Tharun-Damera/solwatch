@@ -12,7 +12,7 @@ use crate::{
     AppState,
     db::{
         accounts::{check_account_exists, get_account},
-        transactions::{get_transaction_signatures, get_transactions},
+        transactions::{get_transaction, get_transaction_signatures, get_transactions},
     },
     error::AppError,
     solana,
@@ -97,4 +97,20 @@ pub async fn transactions(
     let txns = get_transactions(&state.db, address, pagination.skip, pagination.limit).await?;
 
     Ok(Json(txns))
+}
+
+#[instrument(skip(state))]
+pub async fn transaction_from_signature(
+    State(state): State<AppState>,
+    Path((address, signature)): Path<(String, String)>,
+) -> Result<impl IntoResponse, AppError> {
+    let state = state.clone();
+
+    if let Some(txn) = get_transaction(&state.db, address, signature).await? {
+        Ok(Json(txn))
+    } else {
+        Err(AppError::NotFoundError(
+            "Transaction Not Found!".to_string(),
+        ))
+    }
 }
