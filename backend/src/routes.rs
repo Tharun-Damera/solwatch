@@ -10,5 +10,6 @@ pub fn create_router(state: AppState) -> Router {
     Router::new()
         .route("/ws/index/{address}", any(websocket_handler))
         .route("/api/account/{address}/status", get(get_account_status))
+        .route("/api/account/{address}", get(get_account_data))
         .with_state(state)
 }

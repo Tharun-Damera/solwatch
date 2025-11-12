@@ -8,7 +8,12 @@ use axum::{
 use serde::Serialize;
 use tracing::{Level, event, instrument};
 
-use crate::{AppState, db::accounts::check_account_exists, solana};
+use crate::{
+    AppState,
+    db::accounts::{check_account_exists, get_account},
+    error::AppError,
+    solana,
+};
 
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
@@ -42,4 +47,18 @@ pub async fn get_account_status(
     let indexed = check_account_exists(&state.db, &address).await;
 
     Json(AccountStatus { indexed })
+}
+
+#[instrument(skip(state))]
+pub async fn get_account_data(
+    State(state): State<AppState>,
+    Path(address): Path<String>,
+) -> Result<impl IntoResponse, AppError> {
+    let state = state.clone();
+
+    if let Some(account) = get_account(&state.db, &address).await? {
+        Ok(Json(account))
+    } else {
+        Err(AppError::NotFoundError("Account Not Found!".to_string()))
+    }
 }
