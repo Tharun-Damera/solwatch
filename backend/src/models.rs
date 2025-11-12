@@ -1,5 +1,6 @@
 use bson::DateTime;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Account {
@@ -22,5 +23,16 @@ pub struct TransactionSignature {
     pub slot: i64,
     pub block_time: Option<i64>,
     pub confirmation_status: String,
+    pub indexed_at: DateTime,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Transaction {
+    #[serde(rename = "_id")]
+    pub signature: String,
+    pub account_address: String,
+    pub slot: i64,
+    pub block_time: Option<i64>,
+    pub transaction: Value,
     pub indexed_at: DateTime,
 }

@@ -2,7 +2,7 @@ use mongodb::{Database, bson::doc};
 use tracing::{Level, event};
 
 use crate::error::AppError;
-use crate::models::{Account, TransactionSignature};
+use crate::models::{Account, Transaction, TransactionSignature};
 
 pub async fn get_account(db: &Database, address: &str) -> Result<Option<Account>, AppError> {
     let account = db
@@ -42,13 +42,23 @@ pub async fn insert_account(db: &Database, account: &Account) -> Result<(), AppE
     Ok(())
 }
 
-pub async fn insert_transactions(
+pub async fn insert_transactions_signatures(
     db: &Database,
     signatures: &[TransactionSignature],
 ) -> Result<(), AppError> {
     let inserted = db
         .collection::<TransactionSignature>("transaction_signatures")
         .insert_many(signatures)
+        .await?;
+    event!(Level::INFO, ?inserted);
+
+    Ok(())
+}
+
+pub async fn insert_transactions(db: &Database, txns: &[Transaction]) -> Result<(), AppError> {
+    let inserted = db
+        .collection::<Transaction>("transactions")
+        .insert_many(txns)
         .await?;
     event!(Level::INFO, ?inserted);
 
