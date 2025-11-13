@@ -1,0 +1,29 @@
+services:
+  db:
+    image: mongo:8.0
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: user
+      MONGO_INITDB_ROOT_PASSWORD: password
+    ports:
+      - 27017:27017
+    volume:
+      - mongo_data:/data/db
+  
+  backend:
+    build: backend/.
+    depends_on: db
+    environment:
+      MONGO_URI: mongodb://user:password@db:27017/
+      MONGO_DB: solwatch
+      APP_HOST: 0.0.0.0
+      APP_PORT: 5000
+    ports:
+      - 5000:5000
+    volume:
+      - type: bind
+        source: ./backend/logs
+        target: /app/logs
+
+volumes:
+  mongo_data:

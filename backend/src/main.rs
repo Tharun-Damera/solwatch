@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use mongodb::{Client, Database};
 use solana_client::nonblocking::rpc_client::RpcClient;
+use tracing::{Level, event, instrument};
 
 mod db;
 mod error;
@@ -22,6 +23,7 @@ pub struct AppState {
     pub rpc: Arc<RpcClient>,
 }
 
+#[instrument(skip_all)]
 #[tokio::main]
 async fn main() -> Result<(), error::AppError> {
     // Load the variables from the .env file as env variables
@@ -45,10 +47,14 @@ async fn main() -> Result<(), error::AppError> {
     // that takes in the AppState to perform DB operations & RPC calls
     let app = routes::create_router(state);
 
-    // Add a tcp binding to listen to requests at port 5000
-    // Localhost (127.0.0.1) for Local
-    // 0.0.0.0 for Prod
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:5000").await?;
+    // Get the host and port from env
+    let host = std::env::var("APP_HOST")?;
+    let port = std::env::var("APP_PORT")?;
+    let bind = format!("{}:{}", host, port);
+    event!(Level::INFO, "[+] Server running on {bind:?}...");
+
+    // Add a tcp binding to listen to requests at the configured host and port
+    let listener = tokio::net::TcpListener::bind(bind).await?;
 
     // Serve the app with the tcp listener
     axum::serve(listener, app).await?;
