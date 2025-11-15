@@ -5,6 +5,8 @@
   --accent1: #06b6d4;
   --accent2: #8b5cf6;
   --text: #e6eef6;
+  --border: #0f1115;
+  --row-border: #282d2b;
 }
 * {
   box-sizing: border-box;
@@ -15,6 +17,7 @@ body {
     "Helvetica Neue", Arial;
   color: var(--text);
   background: var(--bg);
+  font-size: 13px;
 }
 
 #root {
@@ -38,15 +41,18 @@ body {
 }
 
 .container {
-  max-width: 1024px;
-  margin: 26px auto;
+  width: 100%;
+  max-width: 1140px;
+  margin-right: auto;
+  margin-left: auto;
   padding: 0 12px;
+  box-sizing: border-box;
 }
 
 .search-box {
   display: flex;
   gap: 8px;
-  margin-bottom: 18px;
+  margin-top: 18px;
 }
 
 .search-box input {
@@ -73,4 +79,50 @@ body {
   border-radius: 10px;
   text-align: center;
   color: var(--muted);
+}
+
+.error {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #4b1f1f;
+  color: #ffd6d6;
+}
+
+.horizontal-line {
+  border-top: 2px solid var(--row-border);
+  width: 100%;
+  margin: 20px auto;
+  height: 0;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  box-shadow: 0 9px 16px #201e2480;
+}
+
+.card-header {
+  padding: 18px 24px;
+  font-weight: bold;
+}
+
+table {
+  max-width: 100%;
+  height: fit-content;
+  border-collapse: collapse;
+  white-space: nowrap;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  display: inline-block;
+}
+td {
+  padding: 12px 20px;
+  border-top: 1px solid var(--row-border);
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono",
+    monospace;
 }

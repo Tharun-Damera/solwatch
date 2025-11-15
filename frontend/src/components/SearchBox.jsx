@@ -1,24 +1,16 @@
-import { useState } from "react";
-
-export default function SearchBox({ onSearch, loading }) {
-  let [value, setValue] = useState("");
-
-  function onSubmit(e) {
-    e.preventDefault();
-    if (!value) return;
-    onSearch(value.trim());
-  }
+export default function SearchBox({ loading, address, onAddress, onSearch }) {
   return (
-    <form className="search-box">
+    <div className="search-box">
       <input
+        id="search-input"
         type="text"
         placeholder="Enter a Solana Wallet Address"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
+        value={address}
+        onChange={(e) => onAddress(e.target.value.trim())}
       />
-      <button type="submit" onSubmit={onSubmit}>
-        {loading ? "Searching" : "Search"}
+      <button onClick={() => onSearch(address)} disabled={loading}>
+        Search
       </button>
-    </form>
+    </div>
   );
 }
