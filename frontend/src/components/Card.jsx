@@ -1,8 +1,15 @@
-export default function Card({ header, children }) {
-  return (
-    <div className="card">
-      {header && <div className="card-header">{header}</div>}
-      <div className="card-body">{children}</div>
-    </div>
-  );
+export function Card({ children }) {
+  return <div className="card">{children}</div>;
+}
+
+export function CardHeader({ children }) {
+  return <div className="card-header">{children}</div>;
+}
+
+export function CardBody({ children }) {
+  return <div className="card-body">{children}</div>;
+}
+
+export function CardFooter({ children }) {
+  return <div className="card-footer">{children}</div>;
 }

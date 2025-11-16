@@ -13,13 +13,12 @@ export default function App() {
   let [address, setAddress] = useState("");
   let [loading, setLoading] = useState(false);
   let [account, setAccount] = useState(null);
-  let [transactions, setTransactions] = useState(null);
   let [error, setError] = useState(null);
 
   async function handleSearch(value) {
     setAddress(value);
     setLoading(true);
-    await searchAddress(value, setAccount, setTransactions);
+    await searchAddress(value, setAccount);
     setLoading(false);
   }
 
@@ -27,7 +26,8 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     const urlAddress = params.get("address");
     if (urlAddress) {
-      searchAddress(urlAddress, setAccount, setTransactions);
+      setAddress(urlAddress);
+      searchAddress(urlAddress, setAccount);
     }
   }, []);
 
@@ -41,6 +41,7 @@ export default function App() {
           onAddress={setAddress}
           onSearch={handleSearch}
         />
+        {error && <div className="error">{error}</div>}
         <div class="horizontal-line"></div>
 
         {!account && <EmptyState />}
@@ -49,9 +50,7 @@ export default function App() {
 
         {account && <div class="horizontal-line"></div>}
 
-        {transactions && <TransactionHistory transactions={transactions} />}
-
-        {error && <div className="error">{error}</div>}
+        {account && <TransactionHistory address={address} />}
       </main>
     </>
   );

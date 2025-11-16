@@ -20,6 +20,10 @@ body {
   font-size: 13px;
 }
 
+button {
+  cursor: pointer;
+}
+
 #root {
   min-height: 100vh;
   display: flex;
@@ -64,7 +68,7 @@ body {
   color: var(--text);
 }
 
-.search-box button {
+.sol-gradient-btn {
   padding: 10px 14px;
   border-radius: 8px;
   background: linear-gradient(90deg, var(--accent1), var(--accent2));

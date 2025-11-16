@@ -12,7 +12,7 @@ export default function SearchBox({ loading, address, onAddress, onSearch }) {
         value={address}
         onChange={(e) => onAddress(e.target.value.trim())}
       />
-      <button type="submit" disabled={loading}>
+      <button className="sol-gradient-btn" type="submit" disabled={loading}>
         Search
       </button>
     </form>

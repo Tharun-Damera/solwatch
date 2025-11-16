@@ -1,18 +1,15 @@
 import {
   accountData,
   accountIndexStatus,
-  transactionHistory,
+  // transactionHistory,
 } from "../api/api";
 
-export async function searchAddress(address, setAccount, setTransactions) {
+export async function searchAddress(address, setAccount) {
   let result = await accountIndexStatus(address);
+  window.history.replaceState({}, "", `?address=${address}`);
   if (result.indexed) {
-    window.history.replaceState({}, "", `/?address=${address}`);
-
     let acc = await accountData(address);
     setAccount(acc);
-    let txns = await transactionHistory(address);
-    setTransactions(txns);
   } else {
     //
   }

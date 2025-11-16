@@ -16,20 +16,16 @@ export async function accountData(address) {
     method: "GET",
   });
   let resp = await res.json();
-  console.log(resp);
-
   return resp;
 }
 
-export async function transactionHistory(address) {
+export async function transactionHistory(address, skip, limit) {
   let res = await fetch(
-    `${BASE_URL}/api/accounts/${address}/signatures?skip=0&limit=10`,
+    `${BASE_URL}/api/accounts/${address}/signatures?skip=${skip}&limit=${limit}`,
     {
       method: "GET",
     }
   );
   let resp = await res.json();
-  console.log(resp);
-
   return resp;
 }
