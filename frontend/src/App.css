@@ -33,11 +33,11 @@ body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }
 .logo {
-  width: 30px;
+  width: 24px;
 }
 .title {
   font-weight: 700;
-  font-size: 19px;
+  font-size: 16px;
 }
 
 .container {
@@ -101,24 +101,30 @@ body {
   border: 1px solid var(--border);
   border-radius: 5px;
   box-shadow: 0 9px 16px #201e2480;
+  margin-bottom: 30px;
 }
 
 .card-header {
   padding: 18px 24px;
   font-weight: bold;
+  font-size: 18px;
+}
+
+.card-body {
+  white-space: nowrap;
+  overflow-x: auto;
 }
 
 table {
-  max-width: 100%;
-  height: fit-content;
-  border-collapse: collapse;
-  white-space: nowrap;
-  overflow-x: scroll;
-  overflow-y: hidden;
-  display: inline-block;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
 }
+
+th,
 td {
-  padding: 12px 20px;
+  text-align: left;
+  padding: 15px 20px;
   border-top: 1px solid var(--row-border);
 }
 

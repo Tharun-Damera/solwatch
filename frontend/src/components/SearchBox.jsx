@@ -1,6 +1,10 @@
 export default function SearchBox({ loading, address, onAddress, onSearch }) {
+  function onSubmit(e) {
+    e.preventDefault();
+    onSearch(address);
+  }
   return (
-    <div className="search-box">
+    <form className="search-box" onSubmit={onSubmit}>
       <input
         id="search-input"
         type="text"
@@ -8,9 +12,9 @@ export default function SearchBox({ loading, address, onAddress, onSearch }) {
         value={address}
         onChange={(e) => onAddress(e.target.value.trim())}
       />
-      <button onClick={() => onSearch(address)} disabled={loading}>
+      <button type="submit" disabled={loading}>
         Search
       </button>
-    </div>
+    </form>
   );
 }
