@@ -6,7 +6,7 @@ use axum::{
     response::IntoResponse,
 };
 use serde::{Deserialize, Serialize};
-use tracing::{Level, event, instrument};
+use tracing::instrument;
 
 use crate::{
     AppState,
@@ -43,13 +43,15 @@ struct AccountStatus {
 pub async fn get_account_status(
     Path(address): Path<String>,
     State(state): State<AppState>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, AppError> {
     let state = state.clone();
 
-    event!(Level::INFO, "Checking account indexer status: {address}");
     let indexed = check_account_exists(&state.db, &address).await;
-
-    Json(AccountStatus { indexed })
+    if indexed {
+        Ok(Json(AccountStatus { indexed }))
+    } else {
+        Err(AppError::NotFoundError("Account Not found".to_string()))
+    }
 }
 
 #[instrument(skip(state))]

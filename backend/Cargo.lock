@@ -324,6 +324,7 @@ dependencies = [
  "solana-transaction-status",
  "thiserror 2.0.17",
  "tokio",
+ "tower",
  "tower-http",
  "tracing",
  "tracing-appender",
@@ -5823,6 +5824,8 @@ dependencies = [
  "tower",
  "tower-layer",
  "tower-service",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]
