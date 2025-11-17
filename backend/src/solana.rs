@@ -36,14 +36,13 @@ pub async fn send_message<T: Serialize>(socket: &mut WebSocket, value: T) {
 }
 
 #[instrument(skip(socket, error))]
-pub async fn send_error_message(socket: &mut WebSocket, address: &str, error: AppError) {
+pub async fn send_error_message(socket: &mut WebSocket, error: AppError) {
     event!(Level::ERROR, "Error occurred: {error}");
 
     // Send the error message to the client
     send_message(
         socket,
         IndexingMessage::Error {
-            address,
             message: &error.to_string(),
         },
     )
@@ -88,7 +87,7 @@ pub async fn index_address(
     insert_account(&state.db, &account).await?;
 
     // Send the account data to the client via socket communication
-    send_message(socket, IndexingMessage::AccountData(account)).await;
+    send_message(socket, IndexingMessage::AccountData { data: account }).await;
 
     // Get only the latest 20 transaction signatures
     let signatures = state

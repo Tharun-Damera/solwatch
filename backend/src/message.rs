@@ -8,8 +8,8 @@ use crate::models::{Account, TransactionSignature};
 #[serde(tag = "type")]
 pub enum IndexingMessage<'a> {
     Started { address: &'a str },
-    AccountData(Account),
+    AccountData { data: Account },
     TransactionSignatures { data: &'a [TransactionSignature] },
     Completed { address: &'a str },
-    Error { address: &'a str, message: &'a str },
+    Error { message: &'a str },
 }

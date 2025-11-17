@@ -29,7 +29,7 @@ pub async fn websocket_handler(
 // Websocket handler that handles the Indexing of the Solana account based on the address
 async fn handle_socket(mut socket: WebSocket, state: AppState, address: String) {
     if let Err(e) = solana::index_address(&mut socket, state, address.clone()).await {
-        solana::send_error_message(&mut socket, &address, e).await;
+        solana::send_error_message(&mut socket, e).await;
     }
 }
 
