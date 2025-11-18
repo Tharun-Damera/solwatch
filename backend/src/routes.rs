@@ -1,7 +1,4 @@
-use axum::{
-    Router,
-    routing::{any, get},
-};
+use axum::{Router, routing::get};
 use tower::ServiceBuilder;
 use tower_http::{
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
@@ -35,9 +32,9 @@ pub fn create_router(state: AppState) -> Router {
 
     // Setup a router consisting of the routes with the Connection pool as State accessible to all the handlers
     Router::new()
-        // WebSocket ws route
-        .route("/ws/index/{address}", any(websocket_handler))
-        // API routes
+        // SSE (Server Sent Event) route for indexing
+        .route("/api/accounts/{address}/index/sse", get(indexer_sse))
+        // Remaining API routes
         .route("/api/accounts/{address}/status", get(get_account_status))
         .route("/api/accounts/{address}", get(get_account_data))
         .route(

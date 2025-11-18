@@ -1,11 +1,16 @@
+use std::convert::Infallible;
+
 use axum::{
-    extract::{
-        Json, Path, Query, State,
-        ws::{WebSocket, WebSocketUpgrade},
+    extract::{Json, Path, Query, State},
+    response::{
+        IntoResponse,
+        sse::{Event, KeepAlive, Sse},
     },
-    response::IntoResponse,
 };
+use futures::{Stream, StreamExt};
 use serde::{Deserialize, Serialize};
+use tokio::sync::mpsc;
+use tokio_stream::wrappers::ReceiverStream;
 use tracing::instrument;
 
 use crate::{
@@ -15,22 +20,42 @@ use crate::{
         transactions::{get_transaction, get_transaction_signatures, get_transactions},
     },
     error::AppError,
+    message::IndexingMessage,
     solana,
 };
 
-pub async fn websocket_handler(
-    ws: WebSocketUpgrade,
+pub async fn indexer_sse(
     State(state): State<AppState>,
     Path(address): Path<String>,
-) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_socket(socket, state.clone(), address))
-}
+) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+    let state = state.clone();
 
-// Websocket handler that handles the Indexing of the Solana account based on the address
-async fn handle_socket(mut socket: WebSocket, state: AppState, address: String) {
-    if let Err(e) = solana::index_address(&mut socket, state, address.clone()).await {
-        solana::send_error_message(&mut socket, e).await;
-    }
+    let (sender, receiver) = mpsc::channel(10);
+    tokio::spawn(async move {
+        if let Err(e) = solana::indexer(state, sender.clone(), address).await {
+            solana::send_error_message(sender, e).await;
+        }
+    });
+
+    let stream = ReceiverStream::new(receiver).map(|msg| {
+        let event = match msg {
+            IndexingMessage::Started { address } => {
+                Event::default().event("indexing-started").data(address)
+            }
+            IndexingMessage::AccountData { data } => Event::default()
+                .event("fetched-account-data")
+                .data(serde_json::to_string(&data).unwrap()),
+            IndexingMessage::TransactionSignatures { fetched } => Event::default()
+                .event("fetched-account-data")
+                .data(fetched.to_string()),
+            IndexingMessage::Error { message } => Event::default().event("error").data(message),
+            IndexingMessage::Completed { address } => Event::default().event("close").data(address),
+        };
+
+        Ok(event)
+    });
+
+    Sse::new(stream).keep_alive(KeepAlive::default())
 }
 
 #[derive(Serialize)]
