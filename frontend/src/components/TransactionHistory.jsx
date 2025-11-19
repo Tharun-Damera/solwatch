@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card, CardHeader, CardBody, CardFooter } from "./Card";
 import { transactionHistory } from "../api/api";
 
-export default function TransactionHistory({ address }) {
+export default function TransactionHistory({ address, indexed }) {
   const LIMIT = 20;
 
   const [txns, setTxns] = useState([]);
@@ -14,7 +14,7 @@ export default function TransactionHistory({ address }) {
   const initialLoaded = useRef(false);
 
   async function fetchPage(skipParam) {
-    if (loading) return;
+    if (loading || !indexed) return;
 
     setLoading(true);
 
@@ -48,7 +48,7 @@ export default function TransactionHistory({ address }) {
       initialLoaded.current = true;
       fetchPage(0);
     }
-  }, [address]);
+  }, [address, indexed]);
 
   async function loadMore() {
     if (!hasMore || loading) return;

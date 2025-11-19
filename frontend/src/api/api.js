@@ -1,5 +1,4 @@
 const BASE_URL = import.meta.env.VITE_API_URL;
-console.log(`VITE_API_URL: ${BASE_URL}`);
 
 export async function accountIndexStatus(address) {
   let res = await fetch(`${BASE_URL}/api/accounts/${address}/status`, {

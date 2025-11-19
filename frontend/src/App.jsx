@@ -8,17 +8,20 @@ import Account from "./components/Account";
 
 import TransactionHistory from "./components/TransactionHistory";
 import { searchAddress } from "./utils/searchData";
+import IndexingUpdates from "./components/IndexingUpdates";
 
 export default function App() {
   let [address, setAddress] = useState("");
   let [loading, setLoading] = useState(false);
   let [account, setAccount] = useState(null);
   let [error, setError] = useState(null);
+  let [indexed, setIndexed] = useState(true);
 
-  async function handleSearch(value) {
-    setAddress(value);
+  async function handleSearch(addr) {
+    setError(null);
+    setAddress(addr);
     setLoading(true);
-    await searchAddress(value, setAccount);
+    await searchAddress(addr, setAddress, setIndexed, setAccount);
     setLoading(false);
   }
 
@@ -26,8 +29,7 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     const urlAddress = params.get("address");
     if (urlAddress) {
-      setAddress(urlAddress);
-      searchAddress(urlAddress, setAccount);
+      searchAddress(urlAddress, setAddress, setIndexed, setAccount);
     }
   }, []);
 
@@ -44,13 +46,21 @@ export default function App() {
         {error && <div className="error">{error}</div>}
         <div class="horizontal-line"></div>
 
-        {!account && <EmptyState />}
+        {!loading && !account && <EmptyState />}
+
+        {!indexed && !error && (
+          <IndexingUpdates
+            address={address}
+            setAccount={setAccount}
+            setError={setError}
+          />
+        )}
 
         {account && <Account data={account} />}
 
         {account && <div class="horizontal-line"></div>}
 
-        {account && <TransactionHistory address={address} />}
+        {account && <TransactionHistory address={address} indexed={indexed} />}
       </main>
     </>
   );
