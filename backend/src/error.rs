@@ -11,19 +11,19 @@ use solana_sdk::{pubkey::ParsePubkeyError, signature::ParseSignatureError};
 // Create an AppError using thiserror that handles almost all errors
 #[derive(Error, Debug)]
 pub enum AppError {
-    #[error("Bad Request: {0}")]
+    #[error("Bad Request - {0}")]
     BadRequestError(String),
 
-    #[error("Not Found: {0}")]
+    #[error("Not Found - {0}")]
     NotFoundError(String),
 
-    #[error("Internal Error: {0}")]
+    #[error("Internal Error - {0}")]
     InternalError(String),
 
-    #[error("Database Error: {0}")]
+    #[error("Database Error - {0}")]
     DatabaseError(String),
 
-    #[error("Solana Error: {0}")]
+    #[error("Solana Error - {0}")]
     SolanaError(String),
 }
 

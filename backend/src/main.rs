@@ -24,7 +24,7 @@ pub struct AppState {
     pub rpc: Arc<RpcClient>,
 }
 
-#[instrument(skip_all)]
+#[instrument]
 #[tokio::main]
 async fn main() -> Result<(), error::AppError> {
     // Load the variables from the .env file as env variables
