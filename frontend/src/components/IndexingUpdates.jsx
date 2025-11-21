@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import { Card, CardHeader, CardBody } from "./Card";
 
-export default function IndexingUpdates({ address, setAccount, setError }) {
+export default function IndexingUpdates({
+  address,
+  txnsFetched,
+  setAccount,
+  setTxnsFetched,
+  setError,
+}) {
   let [accountFetched, setAccountFetched] = useState(false);
-  let [txnsFetched, setTxnsFetched] = useState(0);
   let [loading, setLoading] = useState(true);
   let [err, setErr] = useState(false);
 
@@ -34,7 +39,7 @@ export default function IndexingUpdates({ address, setAccount, setError }) {
     return () => {
       sse.close();
     };
-  }, [address, setAccount, setError]);
+  }, [address, setAccount, setTxnsFetched, setError]);
 
   if (err) {
     return <></>;
