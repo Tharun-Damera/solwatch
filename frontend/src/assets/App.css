@@ -148,3 +148,76 @@ a {
   text-overflow: ellipsis;
   width: 350px;
 }
+
+.txn-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+  z-index: 999;
+}
+
+.txn-modal {
+  background: #151221;
+  width: 100%;
+  max-width: 480px;
+  border-radius: 14px;
+  padding: 16px;
+  position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.txn-close {
+  position: absolute;
+  top: 28px;
+  right: 15px;
+  font-size: 24px;
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+}
+
+.txn-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.txn-card {
+  background: #1e1b2b;
+  padding: 14px;
+  border-radius: 10px;
+}
+
+.txn-card h3 {
+  margin: 0 0 6px 0;
+}
+
+.break {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+.txn-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 4px 0;
+}
+
+.tag {
+  font-size: 12px;
+  color: #8b8bff;
+}
+
+.txn-log {
+  background: #111;
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: pre-wrap;
+}

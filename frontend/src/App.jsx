@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 
-import "./App.css";
 import EmptyState from "./components/EmptyState";
 import Navbar from "./components/NavBar";
 import SearchBox from "./components/SearchBox";
@@ -9,6 +8,7 @@ import Account from "./components/Account";
 import TransactionHistory from "./components/TransactionHistory";
 import { searchAddress } from "./utils/searchData";
 import IndexingUpdates from "./components/IndexingUpdates";
+import Transaction from "./components/Transaction";
 
 export default function App() {
   let [address, setAddress] = useState("");
@@ -17,6 +17,7 @@ export default function App() {
   let [error, setError] = useState(null);
   let [indexed, setIndexed] = useState(true);
   let [txnsIndexed, settxnsIndexed] = useState(0);
+  let [detailedTxn, setDetailedTxn] = useState(null);
 
   async function handleSearch(addr) {
     setError(null);
@@ -49,21 +50,38 @@ export default function App() {
         {!loading && !account && <EmptyState />}
 
         {!indexed && !error && (
-          <IndexingUpdates
+          <>
+            <IndexingUpdates
+              address={address}
+              txnsIndexed={txnsIndexed}
+              setAccount={setAccount}
+              settxnsIndexed={settxnsIndexed}
+              setError={setError}
+            />
+            <div class="horizontal-line"></div>
+          </>
+        )}
+
+        {account && (
+          <>
+            <Account data={account} />
+            <div class="horizontal-line"></div>
+          </>
+        )}
+
+        {account && (indexed || txnsIndexed > 0) && (
+          <TransactionHistory
             address={address}
-            txnsIndexed={txnsIndexed}
-            setAccount={setAccount}
-            settxnsIndexed={settxnsIndexed}
-            setError={setError}
+            setDetailedTxn={setDetailedTxn}
           />
         )}
 
-        {account && <Account data={account} />}
-
-        {account && <div class="horizontal-line"></div>}
-
-        {account && (indexed || txnsIndexed > 0) && (
-          <TransactionHistory address={address} />
+        {detailedTxn && (
+          <Transaction
+            address={address}
+            signature={detailedTxn}
+            onClose={() => setDetailedTxn(null)}
+          />
         )}
       </main>
     </>

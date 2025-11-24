@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card, CardHeader, CardBody, CardFooter } from "./Card";
 import { transactionHistory } from "../api/api";
 
-export default function TransactionHistory({ address }) {
+export default function TransactionHistory({ address, setDetailedTxn }) {
   const LIMIT = 20;
 
   const [txns, setTxns] = useState([]);
@@ -48,16 +48,21 @@ export default function TransactionHistory({ address }) {
     }
   }
 
-  useEffect(() => {
-    if (!address) return;
-
-    reset_states();
-  }, [address]);
+  function onSignatureClick(e, id) {
+    e.preventDefault();
+    setDetailedTxn(id);
+  }
 
   async function loadMore() {
     if (!hasMore || loading) return;
     await fetchPage(skip);
   }
+
+  useEffect(() => {
+    if (!address) return;
+
+    reset_states();
+  }, [address]);
 
   return (
     <Card>
@@ -77,7 +82,9 @@ export default function TransactionHistory({ address }) {
               <tr key={txn._id}>
                 <td>
                   <div className="truncated-text">
-                    <a href="">{txn._id}</a>
+                    <a href="#" onClick={(e) => onSignatureClick(e, txn._id)}>
+                      {txn._id}
+                    </a>
                   </div>
                 </td>
                 <td>{txn.block_time}</td>
