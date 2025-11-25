@@ -41,8 +41,7 @@ export default function App() {
       <main className="container">
         <SearchBox
           loading={loading}
-          address={address}
-          onAddress={setAddress}
+          setAddress={setAddress}
           onSearch={handleSearch}
         />
         {error && <div className="error">{error}</div>}

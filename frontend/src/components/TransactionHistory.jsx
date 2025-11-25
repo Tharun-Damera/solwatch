@@ -63,8 +63,6 @@ export default function TransactionHistory({
   }
 
   useEffect(() => {
-    if (!address) return;
-
     reset_states();
   }, [account]);
 

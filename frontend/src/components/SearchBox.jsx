@@ -1,16 +1,22 @@
-export default function SearchBox({ loading, address, onAddress, onSearch }) {
+import { useState } from "react";
+
+export default function SearchBox({ loading, setAddress, onSearch }) {
+  let [addr, setAddr] = useState(null);
+
   function onSubmit(e) {
     e.preventDefault();
-    onSearch(address);
+    setAddress(addr);
+    onSearch(addr);
   }
+
   return (
     <form className="search-box" onSubmit={onSubmit}>
       <input
         id="search-input"
         type="text"
         placeholder="Enter a Solana Wallet Address"
-        value={address}
-        onChange={(e) => onAddress(e.target.value.trim())}
+        value={addr}
+        onChange={(e) => setAddr(e.target.value.trim())}
       />
       <button className="sol-gradient-btn" type="submit" disabled={loading}>
         Search
