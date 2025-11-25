@@ -40,18 +40,6 @@ export default function TransactionHistory({
     setLoading(false);
   }
 
-  async function reset_states() {
-    setTxns([]);
-    setSkip(0);
-    setHasMore(true);
-
-    // avoid double-fetch in React strict mode dev
-    if (!initialLoaded.current) {
-      initialLoaded.current = true;
-      fetchPage(0);
-    }
-  }
-
   function onSignatureClick(e, id) {
     e.preventDefault();
     setDetailedTxn(id);
@@ -63,6 +51,18 @@ export default function TransactionHistory({
   }
 
   useEffect(() => {
+    async function reset_states() {
+      setTxns([]);
+      setSkip(0);
+      setHasMore(true);
+
+      // avoid double-fetch in React strict mode dev
+      if (!initialLoaded.current) {
+        initialLoaded.current = true;
+        await fetchPage(0);
+      }
+    }
+
     reset_states();
   }, [account]);
 

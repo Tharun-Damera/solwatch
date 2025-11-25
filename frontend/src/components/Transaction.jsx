@@ -20,7 +20,7 @@ export default function TransactionDetails({ address, signature, onClose }) {
     }
 
     fetchTxn();
-  }, [signature]);
+  }, [address, signature]);
 
   return (
     <div className="txn-overlay" onClick={onClose}>
