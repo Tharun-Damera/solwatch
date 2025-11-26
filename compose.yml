@@ -7,23 +7,39 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: password
     ports:
       - 27017:27017
-    volume:
+    volumes:
       - mongo_data:/data/db
-  
+
   backend:
-    build: backend/.
-    depends_on: db
+    build: ./backend
+    restart: always
+    depends_on:
+      - db
     environment:
-      MONGO_URI: mongodb://user:password@db:27017/
+      MONGO_URI: mongodb://user:password@db:27017/?authSource=admin
       MONGO_DB: solwatch
       APP_HOST: 0.0.0.0
       APP_PORT: 5000
+      ALLOWED_ORIGINS: http://frontend:80,http://localhost:8000
     ports:
       - 5000:5000
-    volume:
+    volumes:
       - type: bind
         source: ./backend/logs
         target: /app/logs
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:5000
+    restart: always
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: http://localhost:5000
+    ports:
+      - 8000:80
 
 volumes:
   mongo_data:
