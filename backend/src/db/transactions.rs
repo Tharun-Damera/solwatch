@@ -1,5 +1,5 @@
 use futures::stream::TryStreamExt;
-use mongodb::{Database, bson::doc};
+use mongodb::{Database, bson::doc, options::FindOneOptions};
 
 use crate::error::AppError;
 use crate::models::{Transaction, TransactionSignature};
@@ -73,4 +73,26 @@ pub async fn get_transaction(
         .await?;
 
     Ok(signature)
+}
+
+#[derive(serde::Deserialize)]
+struct SignatureOnly {
+    _id: String,
+}
+
+pub async fn get_latest_signature(db: &Database, address: String) -> Result<String, AppError> {
+    let options = FindOneOptions::builder()
+        .sort(doc! {"slot": -1})
+        .projection(doc! {"_id": 1})
+        .build();
+
+    let latest_record = db
+        .collection::<SignatureOnly>(SIGNATURE_COLLECTION)
+        .find_one(doc! {"account_address": address})
+        .with_options(options)
+        .await?;
+
+    latest_record
+        .map(|r| Ok(r._id))
+        .unwrap_or_else(|| Err(AppError::NotFoundError("Latest Signature".to_string())))
 }
