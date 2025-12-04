@@ -1,26 +1,43 @@
 import { useEffect, useState } from "react";
-import { transaction } from "../api/api";
 import { toTitleCase } from "../utils/case";
 
-export default function TransactionDetails({ address, signature, onClose }) {
+const BASE_URL = import.meta.env.VITE_API_URL;
+
+export default function TransactionDetails({
+  address,
+  signature,
+  error,
+  setError,
+  onClose,
+}) {
   const [txn, setTxn] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchTxn() {
+      setError(null);
       setLoading(true);
       try {
-        const data = await transaction(address, signature);
+        let res = await fetch(
+          `${BASE_URL}/api/accounts/${address}/transactions/${signature}`,
+          {
+            method: "GET",
+          }
+        );
+        if (!res.ok) throw new Error("Something went wrong");
+        let data = await res.json();
         setTxn(data);
-      } catch (err) {
-        console.error("Error fetching txn", err);
+      } catch (e) {
+        setError(e.message);
       } finally {
         setLoading(false);
       }
     }
 
     fetchTxn();
-  }, [address, signature]);
+  }, [address, signature, setError]);
+
+  if (error) return <></>;
 
   return (
     <div className="txn-overlay" onClick={onClose}>
