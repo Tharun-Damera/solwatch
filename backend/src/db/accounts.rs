@@ -1,6 +1,7 @@
+use futures::stream::TryStreamExt;
 use mongodb::{
     Database,
-    bson::doc,
+    bson::{Document, doc, from_document},
     options::{FindOneAndUpdateOptions, ReturnDocument},
 };
 use tracing::{Level, event};
@@ -76,7 +77,90 @@ pub async fn update_account(
         )
         .with_options(options)
         .await?
-        .ok_or_else(|| AppError::NotFoundError("Account".into()));
+        .ok_or_else(|| AppError::NotFoundError("Account Not Found".into()));
 
     updated
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct IndexerStats {
+    account_exists: bool,
+    signatures: i64,
+    transactions: i64,
+}
+
+pub async fn get_indexer_stats(db: &Database, address: &str) -> Result<IndexerStats, AppError> {
+    let docs: Vec<Document> = db
+        .collection::<Document>(ACCOUNTS)
+        .aggregate([
+            doc! {
+                "$match": {
+                    "_id": address
+                }
+            },
+            doc! {
+                "$lookup": {
+                    "from": "transaction_signatures",
+                    "localField": "_id",
+                    "foreignField": "account_address",
+                    "as": "signatures",
+                    "pipeline": [
+                        {
+                            "$count": "count"
+                        }
+                    ]
+                }
+            },
+            doc! {
+                "$lookup": {
+                    "from": "transactions",
+                    "localField": "_id",
+                    "foreignField": "account_address",
+                    "as": "transactions",
+                    "pipeline": [
+                        {
+                            "$count": "count"
+                        }
+                    ]
+                }
+            },
+            doc! {
+                "$addFields": {
+                    "account_exists": true
+                }
+            },
+            doc! {
+                "$project": {
+                    "_id": 0,
+                    "account_exists": 1,
+                    "signatures": {
+                        "$ifNull": [
+                            {
+                                "$first": "$signatures.count"
+                            },
+                            0
+                        ]
+                    },
+                    "transactions": {
+                        "$ifNull": [
+                            {
+                                "$first": "$transactions.count"
+                            },
+                            0
+                        ]
+                    }
+                }
+            },
+        ])
+        .await?
+        .try_collect()
+        .await?;
+
+    if let Some(doc) = docs.into_iter().next() {
+        let decoded: IndexerStats = from_document(doc)?;
+        event!(Level::INFO, ?decoded);
+        return Ok(decoded);
+    } else {
+        Err(AppError::NotFoundError("Account Not Found".into()))
+    }
 }

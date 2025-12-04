@@ -3,6 +3,7 @@ use serde::Serialize;
 use std::{env::VarError, io::Error as IoError};
 use thiserror::Error;
 
+use mongodb::bson::de::Error as MongoBsonDecodeError;
 use mongodb::error::Error as MongoError;
 use serde_json::Error as SerdeJsonError;
 use solana_client::client_error::ClientError;
@@ -55,6 +56,13 @@ impl IntoResponse for AppError {
 // Map the MongoError to the DatabaseError variant of the AppError
 impl From<MongoError> for AppError {
     fn from(e: MongoError) -> Self {
+        AppError::DatabaseError(e.to_string())
+    }
+}
+
+// Map the MongoBsonDecodeError to the DatabaseError variant of the AppError
+impl From<MongoBsonDecodeError> for AppError {
+    fn from(e: MongoBsonDecodeError) -> Self {
         AppError::DatabaseError(e.to_string())
     }
 }

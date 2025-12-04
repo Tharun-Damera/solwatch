@@ -16,7 +16,7 @@ use tracing::{Level, event, instrument};
 use crate::{
     AppState,
     db::{
-        accounts::{check_account_exists, get_account},
+        accounts::{check_account_exists, get_account, get_indexer_stats},
         transactions::{get_transaction, get_transaction_signatures, get_transactions},
     },
     error::AppError,
@@ -41,7 +41,7 @@ pub async fn get_account_status(
     if indexed {
         Ok(Json(AccountStatus { indexed }))
     } else {
-        Err(AppError::NotFoundError("Account Not found".to_string()))
+        Err(AppError::NotFoundError("Account Not Found".to_string()))
     }
 }
 
@@ -112,7 +112,7 @@ pub async fn get_account_data(
         event!(Level::INFO, ?account);
         Ok(Json(account))
     } else {
-        Err(AppError::NotFoundError("Account Not Found!".to_string()))
+        Err(AppError::NotFoundError("Account Not Found".to_string()))
     }
 }
 
@@ -162,8 +162,17 @@ pub async fn transaction_from_signature(
         event!(Level::INFO, ?txn);
         Ok(Json(txn))
     } else {
-        Err(AppError::NotFoundError(
-            "Transaction Not Found!".to_string(),
-        ))
+        Err(AppError::NotFoundError("Transaction Not Found".to_string()))
     }
+}
+
+#[instrument(skip(state))]
+pub async fn indexer_stats(
+    State(state): State<AppState>,
+    Path(address): Path<String>,
+) -> Result<impl IntoResponse, AppError> {
+    let state = state.clone();
+
+    let stats = get_indexer_stats(&state.db, &address).await?;
+    Ok(Json(stats))
 }
