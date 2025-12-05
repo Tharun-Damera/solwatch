@@ -230,3 +230,26 @@ a {
     text-align: right;
   }
 }
+
+.stats-header-div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.refresh {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid var(--row-border);
+  border-radius: 4px;
+  background-color: var(--bg);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.refresh img {
+  width: 18px;
+}

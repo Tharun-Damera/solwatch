@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardHeader, CardBody } from "./Card";
 
 import { BASE_URL } from "../utils/env";
@@ -11,75 +11,107 @@ export default function IndexerStats({
   setError,
 }) {
   const [state, setState] = useState("⏸️ Idle");
-  const [accountFetched, setAccountFetched] = useState(true);
+  const [accountFetched, setAccountFetched] = useState(false);
   const [signatureStats, setSignatureStats] = useState({ total: 0 });
   const [txnStats, setTxnStats] = useState({ total: 0 });
-  const [err, setErr] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const sseRef = useRef(null);
+
+  async function startSSE(url, isRefresh) {
+    if (sseRef.current) sseRef.current.close();
+
+    const sse = new EventSource(url);
+    sseRef.current = sse;
+
+    const custom_state = isRefresh ? "🔁 Syncing" : "▶️ Running";
+
+    sse.addEventListener("started", () => {
+      setState(custom_state);
+      setAccountFetched(false);
+    });
+
+    sse.addEventListener("account-data", (e) => {
+      const data = JSON.parse(e.data);
+      setAccountFetched(true);
+      setAccount(data);
+    });
+
+    sse.addEventListener("signatures-fetched", (e) => {
+      setSignatureStats(JSON.parse(e.data));
+    });
+
+    sse.addEventListener("transactions-fetched", (e) => {
+      const data = JSON.parse(e.data);
+      setTxnsIndexed(data.total);
+      setTxnStats(data);
+    });
+
+    sse.addEventListener("error", (e) => {
+      sse.close();
+      setLoading(false);
+      if (e.data) {
+        setState("🟥 Error");
+        setError(e.data);
+      }
+    });
+
+    sse.addEventListener("close", () => {
+      sse.close();
+      setLoading(false);
+      setState("✅ Completed");
+    });
+  }
+
+  async function getIdleStats() {
+    try {
+      const res = await fetch(
+        `${BASE_URL}/api/accounts/${address}/indexer/stats`
+      );
+      const data = await res.json();
+      setAccountFetched(data.account_exists);
+      setSignatureStats({ total: data.signatures });
+      setTxnStats({ total: data.transactions });
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function onRefresh() {
+    startSSE(`${BASE_URL}/api/accounts/${address}/refresh/sse`, true);
+  }
 
   useEffect(() => {
-    async function get_idle_stats() {
-      try {
-        const res = await fetch(
-          `${BASE_URL}/api/accounts/${address}/indexer/stats`,
-          {
-            method: "GET",
-          }
-        );
-        const data = await res.json();
-        setSignatureStats({ total: data.signatures });
-        setTxnStats({ total: data.transactions });
-      } catch (err) {
-        setError(err.message);
-        setErr(err.message);
+    if (!address) return;
+
+    function run() {
+      setLoading(true);
+      if (indexed) {
+        getIdleStats();
+      } else {
+        startSSE(`${BASE_URL}/api/accounts/${address}/index/sse`, false);
       }
+      setLoading(false);
     }
-    const custom_state = indexed ? "🔁 Syncing" : "▶️ Running";
 
-    if (indexed) {
-      get_idle_stats();
-    } else {
-      const url = `${BASE_URL}/api/accounts/${address}/index/sse`;
-      const sse = new EventSource(url);
-      sse.addEventListener("started", () => {
-        setState(custom_state);
-        setAccountFetched(false);
-      });
-      sse.addEventListener("account-data", (e) => {
-        const data = JSON.parse(e.data);
-        console.log(data);
-        setAccountFetched(true);
-        setAccount(data);
-      });
-      sse.addEventListener("signatures-fetched", (e) => {
-        const data = JSON.parse(e.data);
-        setTxnStats(data);
-      });
-      sse.addEventListener("transactions-fetched", (e) => {
-        const data = JSON.parse(e.data);
-        setTxnsIndexed(data.total);
-        setSignatureStats(data);
-      });
-      sse.addEventListener("error", (e) => {
-        sse.close();
-        setErr(e.data);
-        setError(e.data);
-      });
-      sse.addEventListener("close", () => {
-        sse.close();
-        setState("✅ Completed");
-      });
-      return () => {
-        sse.close();
-      };
-    }
-  }, [address, indexed, setAccount, setTxnsIndexed, setError]);
-
-  if (err) return <></>;
+    run();
+    return () => {
+      if (sseRef.current) sseRef.current.close();
+    };
+  }, [address, indexed]);
 
   return (
     <>
       <Card>
-        <CardHeader>Indexer Stats</CardHeader>
+        <CardHeader>
+          <div className="stats-header-div">
+            <span>Indexer Stats</span>
+            <button className="refresh" disabled={loading} onClick={onRefresh}>
+              <img src="/refresh-icon.svg" />
+              Refresh
+            </button>
+          </div>
+        </CardHeader>
         <CardBody>
           <table>
             <tbody>

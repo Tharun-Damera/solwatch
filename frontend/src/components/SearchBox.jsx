@@ -15,6 +15,7 @@ export default function SearchBox({ loading, setAddress, onSearch }) {
         id="search-input"
         type="text"
         placeholder="Enter a Solana Wallet Address"
+        required
         value={addr}
         onChange={(e) => setAddr(e.target.value.trim())}
       />

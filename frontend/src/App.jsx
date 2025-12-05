@@ -74,7 +74,7 @@ export default function App() {
           />
         )}
 
-        {indexed && (
+        {(indexed || account) && (
           <Account
             address={address}
             account={account}
