@@ -3,23 +3,22 @@ import { useEffect, useState } from "react";
 import EmptyState from "./components/EmptyState";
 import Navbar from "./components/NavBar";
 import SearchBox from "./components/SearchBox";
-import Account from "./components/Account";
-
-import TransactionHistory from "./components/TransactionHistory";
 import IndexerStats from "./components/IndexerStats";
+import Account from "./components/Account";
+import TransactionHistory from "./components/TransactionHistory";
 import Transaction from "./components/Transaction";
 
-import { accountIndexStatus } from "./api/api";
+const BASE_URL = import.meta.env.VITE_API_URL;
 
 export default function App() {
-  let [loading, setLoading] = useState(false);
-  let [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  let [address, setAddress] = useState("");
-  let [indexed, setIndexed] = useState(null);
-  let [account, setAccount] = useState(null);
-  let [txnsIndexed, setTxnsIndexed] = useState(0);
-  let [detailedTxn, setDetailedTxn] = useState(null);
+  const [address, setAddress] = useState("");
+  const [indexed, setIndexed] = useState(null);
+  const [account, setAccount] = useState(null);
+  const [txnsIndexed, setTxnsIndexed] = useState(0);
+  const [detailedTxn, setDetailedTxn] = useState(null);
 
   async function handleSearch(addr) {
     setError(null);
@@ -29,8 +28,10 @@ export default function App() {
     setAddress(addr);
     window.history.replaceState({}, "", `?address=${addr}`);
 
-    let result = await accountIndexStatus(addr);
-    if (result.indexed) {
+    const res = await fetch(`${BASE_URL}/api/accounts/${addr}/status`, {
+      method: "GET",
+    });
+    if (res.ok) {
       setIndexed(true);
     } else {
       setIndexed(false);
