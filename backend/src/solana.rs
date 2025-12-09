@@ -9,7 +9,7 @@ use tokio::sync::mpsc;
 use tracing::{Level, event, instrument};
 
 use crate::{
-    AppState,
+    app_state::AppState,
     db::{
         accounts::{check_account_exists, insert_account, update_account},
         transactions::{
@@ -62,6 +62,11 @@ pub async fn indexer(
     sender: mpsc::Sender<SyncStatus>,
     address: String,
 ) -> Result<(), AppError> {
+
+    let mutex = state.get_address_lock(&address);
+    let lock = mutex.lock().await;
+    event!(Level::INFO, "Lock acquired here");
+
     // Convert the address str to Address struct instance of Solana account
     let public_key = Pubkey::from_str(&address)?;
 
@@ -206,6 +211,7 @@ pub async fn indexer(
     )
     .await?;
 
+    event!(Level::INFO, "Lock: {:?} will be dropped here", lock);
     Ok(())
 }
 

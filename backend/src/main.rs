@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use mongodb::{Client, Database};
 use solana_client::nonblocking::rpc_client::RpcClient;
 use tracing::{Level, event, instrument};
 
+mod app_state;
 mod cors;
 mod db;
 mod error;
@@ -16,13 +16,6 @@ mod tracer;
 
 // Solana Devnet RPC URL
 const DEV_NET: &str = "https://api.devnet.solana.com";
-
-#[derive(Clone)]
-pub struct AppState {
-    pub client: Client,
-    pub db: Database,
-    pub rpc: Arc<RpcClient>,
-}
 
 #[instrument]
 #[tokio::main]
@@ -42,7 +35,7 @@ async fn main() -> Result<(), error::AppError> {
     let rpc = Arc::new(RpcClient::new(DEV_NET.to_string()));
 
     // Create an AppState containing Mongo Client, Database and RpcClient
-    let state = AppState { client, db, rpc };
+    let state = app_state::AppState::new(client, db, rpc);
 
     // Create an app router for handling requests
     // that takes in the AppState to perform DB operations & RPC calls

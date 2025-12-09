@@ -14,7 +14,7 @@ use tokio_stream::wrappers::ReceiverStream;
 use tracing::{Level, event, instrument};
 
 use crate::{
-    AppState,
+    app_state::AppState,
     db::{
         accounts::{check_account_exists, get_account, get_indexer_stats},
         transactions::{get_transaction, get_transaction_signatures, get_transactions},

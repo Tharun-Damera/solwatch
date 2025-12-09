@@ -6,7 +6,7 @@ use tower_http::{
 };
 use tracing::Level;
 
-use crate::{AppState, cors::setup_cors_layer, handlers::*};
+use crate::{app_state::AppState, cors::setup_cors_layer, handlers::*};
 
 pub fn create_router(state: AppState) -> Router {
     // Setup the cors layer and add it to the router
