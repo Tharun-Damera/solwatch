@@ -1,4 +1,5 @@
 use std::convert::Infallible;
+use std::sync::atomic::Ordering;
 
 use axum::{
     extract::{Json, Path, Query, State},
@@ -7,10 +8,9 @@ use axum::{
         sse::{Event, KeepAlive, Sse},
     },
 };
-use futures::{Stream, StreamExt};
 use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc;
-use tokio_stream::wrappers::ReceiverStream;
+use tokio_stream::wrappers::BroadcastStream;
+use tokio_stream::{Stream, StreamExt};
 use tracing::{Level, event, instrument};
 
 use crate::{
@@ -66,20 +66,37 @@ pub async fn indexer_sse(
     State(state): State<AppState>,
     Path(address): Path<String>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
-    let state = state.clone();
+    let session = state.get_or_create_session(&address);
+    let receiver = session.sender.subscribe();
+    event!(
+        Level::WARN,
+        "started AtomicBool value: {}",
+        session.started.load(Ordering::Relaxed)
+    );
 
-    let (sender, receiver) = mpsc::channel(10);
-    tokio::spawn(async move {
-        if let Err(e) = solana::indexer(state, sender.clone(), address).await {
-            solana::send_error_message(sender, e).await;
+    if !session.started.swap(true, Ordering::AcqRel) {
+        tokio::spawn(async move {
+            if let Err(e) =
+                solana::indexer(state.clone(), session.sender.clone(), address.clone()).await
+            {
+                solana::send_error_message(session.sender.clone(), e).await;
+            }
+            let removed = state.remove_session(&address);
+            event!(Level::INFO, "Session removed: {}", removed);
+        });
+    }
+
+    let stream = BroadcastStream::new(receiver).map(|msg_result| match msg_result {
+        Ok(msg) => Ok(sync_message_to_event(msg)),
+        Err(e) => {
+            event!(Level::ERROR, "Broadcast Error: {:#?}", e);
+            Ok(Event::default()
+                .event("warning")
+                .data(format!("client request delayed/lagged")))
         }
     });
-
-    let stream = ReceiverStream::new(receiver).map(|msg| Ok(sync_message_to_event(msg)));
-
     Sse::new(stream).keep_alive(KeepAlive::default())
 }
-
 // Refresh SSE API is called to get the latest account and transaction data.
 // Basically when all data related to the account in DB is stale and no longer fresh
 // and needs to match the on-chain data we call this API
@@ -87,17 +104,35 @@ pub async fn refresh_sse(
     State(state): State<AppState>,
     Path(address): Path<String>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
-    let state = state.clone();
+    let session = state.get_or_create_session(&address);
+    let receiver = session.sender.subscribe();
+    event!(
+        Level::WARN,
+        "started AtomicBool value: {}",
+        session.started.load(Ordering::Relaxed)
+    );
 
-    let (sender, receiver) = mpsc::channel(10);
-    tokio::spawn(async {
-        if let Err(e) = solana::refresher(state, sender.clone(), address).await {
-            solana::send_error_message(sender, e).await;
+    if !session.started.swap(true, Ordering::AcqRel) {
+        tokio::spawn(async move {
+            if let Err(e) =
+                solana::refresher(state.clone(), session.sender.clone(), address.clone()).await
+            {
+                solana::send_error_message(session.sender.clone(), e).await;
+            }
+            let removed = state.remove_session(&address);
+            event!(Level::INFO, "Session removed: {}", removed);
+        });
+    }
+
+    let stream = BroadcastStream::new(receiver).map(|msg_result| match msg_result {
+        Ok(msg) => Ok(sync_message_to_event(msg)),
+        Err(e) => {
+            event!(Level::ERROR, "Broadcast Error: {:#?}", e);
+            Ok(Event::default()
+                .event("warning")
+                .data(format!("client request delayed/lagged")))
         }
     });
-
-    let stream = ReceiverStream::new(receiver).map(|msg| Ok(sync_message_to_event(msg)));
-
     Sse::new(stream).keep_alive(KeepAlive::default())
 }
 

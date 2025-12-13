@@ -5,7 +5,7 @@ use mongodb::bson::DateTime as BsonDateTime;
 use solana_client::rpc_client::GetConfirmedSignaturesForAddress2Config;
 use solana_sdk::{pubkey::Pubkey, signature::Signature};
 use solana_transaction_status::UiTransactionEncoding;
-use tokio::sync::mpsc;
+use tokio::sync::broadcast;
 use tracing::{Level, event, instrument};
 
 use crate::{
@@ -37,21 +37,21 @@ struct TotalFetch {
 }
 
 #[instrument(skip(sender, error))]
-pub async fn send_error_message(sender: mpsc::Sender<SyncStatus>, error: AppError) {
+pub async fn send_error_message(sender: broadcast::Sender<SyncStatus>, error: AppError) {
     event!(Level::ERROR, "Error occurred: {error}");
 
     // Send the error message to the client
-    if let Err(err) = sender.send(SyncStatus::Error(error.to_string())).await {
+    if let Err(err) = sender.send(SyncStatus::Error(error.to_string())) {
         event!(
             Level::ERROR,
-            ?err,
-            "-> Error occcured may be receiver dropped"
+            "Error occcured may be receiver dropped: {}",
+            err.to_string()
         );
     }
 }
 
-async fn send_sync_message(sender: &mpsc::Sender<SyncStatus>, status: SyncStatus) {
-    if let Err(err) = sender.send(status).await {
+async fn send_sync_message(sender: &broadcast::Sender<SyncStatus>, status: SyncStatus) {
+    if let Err(err) = sender.send(status) {
         event!(
             Level::ERROR,
             "Error occcured may be receiver dropped: {}",
@@ -63,13 +63,9 @@ async fn send_sync_message(sender: &mpsc::Sender<SyncStatus>, status: SyncStatus
 #[instrument(skip(state, sender))]
 pub async fn indexer(
     state: AppState,
-    sender: mpsc::Sender<SyncStatus>,
+    sender: broadcast::Sender<SyncStatus>,
     address: String,
 ) -> Result<(), AppError> {
-    let mutex = state.get_address_lock(&address);
-    let lock = mutex.lock().await;
-    event!(Level::INFO, "Lock acquired here");
-
     // Convert the address str to Address struct instance of Solana account
     let public_key = Pubkey::from_str(&address)?;
 
@@ -218,14 +214,13 @@ pub async fn indexer(
     )
     .await?;
 
-    event!(Level::INFO, "Lock: {:?} will be dropped here", lock);
     Ok(())
 }
 
 #[instrument(skip_all)]
 async fn continue_sync(
     state: AppState,
-    sender: mpsc::Sender<SyncStatus>,
+    sender: broadcast::Sender<SyncStatus>,
     address: String,
     public_key: Pubkey,
     mut before_signature: Option<Signature>,
@@ -359,13 +354,9 @@ async fn continue_sync(
 
 pub async fn refresher(
     state: AppState,
-    sender: mpsc::Sender<SyncStatus>,
+    sender: broadcast::Sender<SyncStatus>,
     address: String,
 ) -> Result<(), AppError> {
-    let mutex = state.get_address_lock(&address);
-    let lock = mutex.lock().await;
-    event!(Level::INFO, "Lock acquired here");
-
     // Convert the address str to Address struct instance of Solana account
     let public_key = Pubkey::from_str(&address)?;
 
@@ -416,6 +407,5 @@ pub async fn refresher(
     )
     .await?;
 
-    event!(Level::INFO, "Lock: {:?} will be dropped here", lock);
     Ok(())
 }
