@@ -26,6 +26,10 @@ fn bson_current_time() -> BsonDateTime {
     BsonDateTime::from_millis(Utc::now().timestamp_millis())
 }
 
+async fn tokio_sleep(milliseconds: u64) {
+    tokio::time::sleep(std::time::Duration::from_millis(milliseconds)).await;
+}
+
 #[derive(Debug, serde::Serialize)]
 struct TotalFetch {
     total: u64,
@@ -160,6 +164,10 @@ pub async fn indexer(
     for sign in &signatures {
         let signature = Signature::from_str(&sign.signature)?;
 
+        // Sleep again since these are individual RPC calls to get each transaction
+        tokio_sleep(100).await;
+
+        // Fetch individual transaction based on signature
         let txn = state
             .rpc
             .get_transaction(&signature, UiTransactionEncoding::JsonParsed)
@@ -231,6 +239,9 @@ async fn continue_sync(
     const BATCH_SIZE: usize = 1000;
 
     loop {
+        // Sleep for a while to avoid RPC rate limits
+        tokio_sleep(100).await;
+
         // Get the next batch transaction signatures
         let signatures = state
             .rpc
@@ -291,6 +302,9 @@ async fn continue_sync(
         for sign in &signatures {
             let signature = Signature::from_str(&sign.signature)?;
 
+            // Sleep again since these are individual RPC calls to get each transaction
+            tokio_sleep(100).await;
+
             // Get the transaction details based on the signature
             let txn = state
                 .rpc
@@ -333,8 +347,6 @@ async fn continue_sync(
             signatures.len(),
             txns.len()
         );
-
-        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
     }
 
     event!(Level::INFO, "Indexing is completed");
