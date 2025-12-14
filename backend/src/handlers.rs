@@ -8,7 +8,7 @@ use axum::{
         sse::{Event, KeepAlive, Sse},
     },
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use tokio_stream::wrappers::BroadcastStream;
 use tokio_stream::{Stream, StreamExt};
 use tracing::{Level, event, instrument};
@@ -16,7 +16,7 @@ use tracing::{Level, event, instrument};
 use crate::{
     app_state::AppState,
     db::{
-        accounts::{check_account_exists, get_account, get_indexer_stats},
+        accounts::{get_account, get_address_indexing_state, get_indexer_stats},
         transactions::{get_transaction, get_transaction_signatures, get_transactions},
     },
     error::AppError,
@@ -24,25 +24,16 @@ use crate::{
     solana,
 };
 
-#[derive(Serialize)]
-struct AccountStatus {
-    indexed: bool,
-}
-
 // Entry point API of the app that checks whether the Solana account is indexed or not
 #[instrument(skip(state))]
-pub async fn get_account_status(
+pub async fn account_status(
     Path(address): Path<String>,
     State(state): State<AppState>,
 ) -> Result<impl IntoResponse, AppError> {
     let state = state.clone();
 
-    let indexed = check_account_exists(&state.db, &address).await;
-    if indexed {
-        Ok(Json(AccountStatus { indexed }))
-    } else {
-        Err(AppError::NotFound("Account Not Found".to_string()))
-    }
+    let address_state = get_address_indexing_state(&state.db, &address).await?;
+    Ok(Json(address_state))
 }
 
 fn sync_message_to_event(msg: SyncStatus) -> Event {
@@ -137,7 +128,7 @@ pub async fn refresh_sse(
 }
 
 #[instrument(skip(state))]
-pub async fn get_account_data(
+pub async fn account_data(
     State(state): State<AppState>,
     Path(address): Path<String>,
 ) -> Result<impl IntoResponse, AppError> {
@@ -167,8 +158,6 @@ pub async fn transaction_signatures(
 
     let txns =
         get_transaction_signatures(&state.db, address, pagination.skip, pagination.limit).await?;
-    event!(Level::INFO, ?txns);
-
     Ok(Json(txns))
 }
 
@@ -181,8 +170,6 @@ pub async fn transactions(
     let state = state.clone();
 
     let txns = get_transactions(&state.db, address, pagination.skip, pagination.limit).await?;
-    event!(Level::INFO, ?txns);
-
     Ok(Json(txns))
 }
 
@@ -194,7 +181,6 @@ pub async fn transaction_from_signature(
     let state = state.clone();
 
     if let Some(txn) = get_transaction(&state.db, address, signature).await? {
-        event!(Level::INFO, ?txn);
         Ok(Json(txn))
     } else {
         Err(AppError::NotFound("Transaction Not Found".to_string()))

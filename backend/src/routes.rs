@@ -33,11 +33,11 @@ pub fn create_router(state: AppState) -> Router {
     // Setup a router consisting of the routes with the Connection pool as State accessible to all the handlers
     Router::new()
         // Remaining API routes
-        .route("/api/accounts/{address}/status", get(get_account_status))
+        .route("/api/accounts/{address}/status", get(account_status))
         // SSE (Server Sent Event) route for indexing
         .route("/api/accounts/{address}/index/sse", get(indexer_sse))
         .route("/api/accounts/{address}/indexer/stats", get(indexer_stats))
-        .route("/api/accounts/{address}", get(get_account_data))
+        .route("/api/accounts/{address}", get(account_data))
         .route(
             "/api/accounts/{address}/signatures",
             get(transaction_signatures),
