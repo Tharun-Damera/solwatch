@@ -11,7 +11,10 @@ use tracing::{Level, event, instrument};
 use crate::{
     app_state::AppState,
     db::{
-        accounts::{check_account_exists, insert_account, update_account},
+        accounts::{
+            check_account_exists, insert_account, insert_address_indexing_state, update_account,
+            update_address_indexing_state,
+        },
         transactions::{
             get_latest_signature, get_signatures_count, get_transactions_count,
             insert_transactions, insert_transactions_signatures,
@@ -19,7 +22,10 @@ use crate::{
     },
     error::AppError,
     message::SyncStatus,
-    models::{Account, Transaction, TransactionSignature, UpdateAccount},
+    models::{
+        Account, AddressIndexingState, IndexingState, Transaction, TransactionSignature,
+        UpdateAccount, UpdateAddressIndexingState,
+    },
 };
 
 fn bson_current_time() -> BsonDateTime {
@@ -75,6 +81,18 @@ pub async fn indexer(
             "Account is already indexed".to_string(),
         ));
     }
+
+    // Insert the indexing state of the address for tracking purposes
+    insert_address_indexing_state(
+        &state.db,
+        AddressIndexingState {
+            address: address.clone(),
+            state: IndexingState::Indexing,
+            created_at: bson_current_time(),
+            updated_at: bson_current_time(),
+        },
+    )
+    .await?;
 
     event!(Level::INFO, "Begin indexing the address");
     send_sync_message(&sender, SyncStatus::Started).await;
@@ -344,6 +362,17 @@ async fn continue_sync(
         );
     }
 
+    // Once the indexing/syncing/refreshing is completed
+    // set the address indexing state to Idle
+    update_address_indexing_state(
+        &state.db,
+        &address,
+        UpdateAddressIndexingState {
+            state: IndexingState::Idle,
+            updated_at: bson_current_time(),
+        },
+    )
+    .await?;
     event!(Level::INFO, "Indexing is completed");
 
     // Send the completed indexing message to the channel
