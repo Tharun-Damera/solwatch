@@ -1,15 +1,64 @@
 use futures::stream::TryStreamExt;
 use mongodb::{
     Database,
-    bson::{Document, doc, from_document},
+    bson::{Document, doc, from_document, to_bson},
     options::{FindOneAndUpdateOptions, ReturnDocument},
 };
 use tracing::{Level, event};
 
 use crate::error::AppError;
-use crate::models::{Account, UpdateAccount};
+use crate::models::{Account, AddressIndexingState, UpdateAccount, UpdateAddressIndexingState};
 
+const ADDRESS_INDEXING_STATE: &str = "address_indexing_state";
 const ACCOUNTS: &str = "accounts";
+
+pub async fn get_address_indexing_state(
+    db: &Database,
+    address: &str,
+) -> Result<AddressIndexingState, AppError> {
+    db.collection::<AddressIndexingState>(ADDRESS_INDEXING_STATE)
+        .find_one(doc! {"_id": address})
+        .await?
+        .ok_or_else(|| AppError::NotFound("Address not found".to_string()))
+}
+
+pub async fn insert_address_indexing_state(
+    db: &Database,
+    record: AddressIndexingState,
+) -> Result<(), AppError> {
+    db.collection::<AddressIndexingState>(ADDRESS_INDEXING_STATE)
+        .insert_one(record)
+        .await?;
+
+    Ok(())
+}
+
+pub async fn update_address_indexing_state(
+    db: &Database,
+    address: &str,
+    update: UpdateAddressIndexingState,
+) -> Result<(), AppError> {
+    let updated = db
+        .collection::<AddressIndexingState>(ADDRESS_INDEXING_STATE)
+        .find_one_and_update(
+            doc! {"_id": address},
+            doc! {
+                "$set": {
+                    "state": to_bson(&update.state)?,
+                    "updated_at": update.updated_at,
+                }
+            },
+        )
+        .await?;
+
+    match updated {
+        Some(record) => {
+            event!(Level::INFO, ?record);
+            Ok(())
+        }
+        None => Err(AppError::NotFound("Address Not Found".into())),
+    }
+}
 
 pub async fn get_account(db: &Database, address: &str) -> Result<Option<Account>, AppError> {
     let account = db
