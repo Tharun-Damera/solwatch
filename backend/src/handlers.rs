@@ -53,6 +53,7 @@ fn sync_message_to_event(msg: SyncStatus) -> Event {
 
 // Indexer SSE API is called when the account is not found in DB (not indexed)
 // it is used to fetch the account and transaction data via RPC and insert them in DB
+// Using broadcast channel to send the sync status messages to all the receivers or the sse clients
 pub async fn indexer_sse(
     State(state): State<AppState>,
     Path(address): Path<String>,
@@ -88,9 +89,11 @@ pub async fn indexer_sse(
     });
     Sse::new(stream).keep_alive(KeepAlive::default())
 }
+
 // Refresh SSE API is called to get the latest account and transaction data.
 // Basically when all data related to the account in DB is stale and no longer fresh
 // and needs to match the on-chain data we call this API
+// Using broadcast channel to send the sync status messages to all the receivers or the sse clients
 pub async fn refresh_sse(
     State(state): State<AppState>,
     Path(address): Path<String>,
