@@ -67,26 +67,37 @@ pub async fn indexer_sse(
     );
 
     if !session.started.swap(true, Ordering::AcqRel) {
+        let session = session.clone();
         tokio::spawn(async move {
-            if let Err(e) =
-                solana::indexer(state.clone(), session.sender.clone(), address.clone()).await
-            {
-                solana::send_error_message(session.sender.clone(), e).await;
+            if let Err(e) = solana::indexer(state.clone(), session.clone(), address.clone()).await {
+                session.emit_event(SyncStatus::Error(e.to_string())).await;
+                event!(
+                    Level::ERROR,
+                    "Error occcured while sending event to channel: {}",
+                    e.to_string()
+                );
             }
             let removed = state.remove_session(&address);
             event!(Level::INFO, "Session removed: {}", removed);
         });
     }
 
-    let stream = BroadcastStream::new(receiver).map(|msg_result| match msg_result {
+    let replay_stream = tokio_stream::iter({
+        let events = session.past_events.read().await;
+        events.clone()
+    })
+    .map(|event| Ok(sync_message_to_event(event)));
+
+    let live_stream = BroadcastStream::new(receiver).map(|msg_result| match msg_result {
         Ok(msg) => Ok(sync_message_to_event(msg)),
         Err(e) => {
             event!(Level::ERROR, "Broadcast Error: {:#?}", e);
             Ok(Event::default()
                 .event("warning")
-                .data(format!("client request delayed/lagged")))
+                .data("client request delayed/lagged"))
         }
     });
+    let stream = replay_stream.chain(live_stream);
     Sse::new(stream).keep_alive(KeepAlive::default())
 }
 
@@ -107,26 +118,38 @@ pub async fn refresh_sse(
     );
 
     if !session.started.swap(true, Ordering::AcqRel) {
+        let session = session.clone();
         tokio::spawn(async move {
-            if let Err(e) =
-                solana::refresher(state.clone(), session.sender.clone(), address.clone()).await
+            if let Err(e) = solana::refresher(state.clone(), session.clone(), address.clone()).await
             {
-                solana::send_error_message(session.sender.clone(), e).await;
+                session.emit_event(SyncStatus::Error(e.to_string())).await;
+                event!(
+                    Level::ERROR,
+                    "Error occcured while sending event to channel: {}",
+                    e.to_string()
+                );
             }
+
             let removed = state.remove_session(&address);
             event!(Level::INFO, "Session removed: {}", removed);
         });
     }
+    let replay_stream = tokio_stream::iter({
+        let events = session.past_events.read().await;
+        events.clone()
+    })
+    .map(|event| Ok(sync_message_to_event(event)));
 
-    let stream = BroadcastStream::new(receiver).map(|msg_result| match msg_result {
+    let live_stream = BroadcastStream::new(receiver).map(|msg_result| match msg_result {
         Ok(msg) => Ok(sync_message_to_event(msg)),
         Err(e) => {
             event!(Level::ERROR, "Broadcast Error: {:#?}", e);
             Ok(Event::default()
                 .event("warning")
-                .data(format!("client request delayed/lagged")))
+                .data("client request delayed/lagged"))
         }
     });
+    let stream = replay_stream.chain(live_stream);
     Sse::new(stream).keep_alive(KeepAlive::default())
 }
 

@@ -1,15 +1,15 @@
 use std::str::FromStr;
+use std::sync::Arc;
 
 use chrono::Utc;
 use mongodb::bson::DateTime as BsonDateTime;
 use solana_client::rpc_client::GetConfirmedSignaturesForAddress2Config;
 use solana_sdk::{pubkey::Pubkey, signature::Signature};
 use solana_transaction_status::UiTransactionEncoding;
-use tokio::sync::broadcast;
 use tracing::{Level, event, instrument};
 
 use crate::{
-    app_state::AppState,
+    app_state::{AddressSession, AppState},
     db::{
         accounts::{
             check_account_exists, insert_account, insert_address_indexing_state, update_account,
@@ -42,34 +42,10 @@ struct TotalFetch {
     fetched: u64,
 }
 
-#[instrument(skip(sender, error))]
-pub async fn send_error_message(sender: broadcast::Sender<SyncStatus>, error: AppError) {
-    event!(Level::ERROR, "Error occurred: {error}");
-
-    // Send the error message to the client
-    if let Err(err) = sender.send(SyncStatus::Error(error.to_string())) {
-        event!(
-            Level::ERROR,
-            "Error occcured may be receiver dropped: {}",
-            err.to_string()
-        );
-    }
-}
-
-async fn send_sync_message(sender: &broadcast::Sender<SyncStatus>, status: SyncStatus) {
-    if let Err(err) = sender.send(status) {
-        event!(
-            Level::ERROR,
-            "Error occcured may be receiver dropped: {}",
-            err.to_string()
-        );
-    }
-}
-
-#[instrument(skip(state, sender))]
+#[instrument(skip(state, session))]
 pub async fn indexer(
     state: AppState,
-    sender: broadcast::Sender<SyncStatus>,
+    session: Arc<AddressSession>,
     address: String,
 ) -> Result<(), AppError> {
     // Convert the address str to Address struct instance of Solana account
@@ -95,7 +71,7 @@ pub async fn indexer(
     .await?;
 
     event!(Level::INFO, "Begin indexing the address");
-    send_sync_message(&sender, SyncStatus::Started).await;
+    session.emit_event(SyncStatus::Started).await;
 
     // Get the Solana account data of the address
     let account = state.rpc.get_account(&public_key).await?;
@@ -116,11 +92,9 @@ pub async fn indexer(
     insert_account(&state.db, &account).await?;
 
     // Send the account data to the channel
-    send_sync_message(
-        &sender,
-        SyncStatus::AccountData(serde_json::to_string(&account)?),
-    )
-    .await;
+    session
+        .emit_event(SyncStatus::AccountData(serde_json::to_string(&account)?))
+        .await;
 
     // Get only the latest 20 transaction signatures
     let signatures = state
@@ -165,14 +139,14 @@ pub async fn indexer(
     let sign_count = get_signatures_count(&state.db, &address).await?;
 
     // Send the transaction signatures data status to the channel
-    send_sync_message(
-        &sender,
-        SyncStatus::TransactionSignatures(serde_json::to_string(&TotalFetch {
-            total: sign_count,
-            fetched: txn_signs.len() as u64,
-        })?),
-    )
-    .await;
+    session
+        .emit_event(SyncStatus::TransactionSignatures(serde_json::to_string(
+            &TotalFetch {
+                total: sign_count,
+                fetched: txn_signs.len() as u64,
+            },
+        )?))
+        .await;
 
     let mut txns: Vec<Transaction> = vec![];
     for sign in &signatures {
@@ -204,14 +178,14 @@ pub async fn indexer(
     let txn_count = get_transactions_count(&state.db, &address).await?;
 
     // Send the transactions data status to the channel
-    send_sync_message(
-        &sender,
-        SyncStatus::TransactionDetails(serde_json::to_string(&TotalFetch {
-            total: txn_count,
-            fetched: txns.len() as u64,
-        })?),
-    )
-    .await;
+    session
+        .emit_event(SyncStatus::TransactionDetails(serde_json::to_string(
+            &TotalFetch {
+                total: txn_count,
+                fetched: txns.len() as u64,
+            },
+        )?))
+        .await;
 
     event!(
         Level::INFO,
@@ -222,7 +196,7 @@ pub async fn indexer(
     let next_signature = signatures.last().unwrap().signature.clone();
     continue_sync(
         state,
-        sender,
+        session,
         address.clone(),
         public_key,
         Some(Signature::from_str(&next_signature)?),
@@ -238,7 +212,7 @@ pub async fn indexer(
 #[instrument(skip_all)]
 async fn continue_sync(
     state: AppState,
-    sender: broadcast::Sender<SyncStatus>,
+    session: Arc<AddressSession>,
     address: String,
     public_key: Pubkey,
     mut before_signature: Option<Signature>,
@@ -302,14 +276,14 @@ async fn continue_sync(
         let sign_count = get_signatures_count(&state.db, &address).await?;
 
         // Send the transaction signatures data status to the channel
-        send_sync_message(
-            &sender,
-            SyncStatus::TransactionSignatures(serde_json::to_string(&TotalFetch {
-                total: sign_count,
-                fetched: total_signs as u64,
-            })?),
-        )
-        .await;
+        session
+            .emit_event(SyncStatus::TransactionSignatures(serde_json::to_string(
+                &TotalFetch {
+                    total: sign_count,
+                    fetched: total_signs as u64,
+                },
+            )?))
+            .await;
 
         let mut txns: Vec<Transaction> = vec![];
         for sign in &signatures {
@@ -343,14 +317,14 @@ async fn continue_sync(
         let txn_count = get_transactions_count(&state.db, &address).await?;
 
         // Send the transaction signatures data status to the channel
-        send_sync_message(
-            &sender,
-            SyncStatus::TransactionDetails(serde_json::to_string(&TotalFetch {
-                total: txn_count,
-                fetched: total_txns as u64,
-            })?),
-        )
-        .await;
+        session
+            .emit_event(SyncStatus::TransactionDetails(serde_json::to_string(
+                &TotalFetch {
+                    total: txn_count,
+                    fetched: total_txns as u64,
+                },
+            )?))
+            .await;
 
         batch += 1;
         event!(
@@ -376,14 +350,14 @@ async fn continue_sync(
     event!(Level::INFO, "Indexing is completed");
 
     // Send the completed indexing message to the channel
-    send_sync_message(&sender, SyncStatus::Completed).await;
+    session.emit_event(SyncStatus::Completed).await;
 
     Ok(())
 }
 
 pub async fn refresher(
     state: AppState,
-    sender: broadcast::Sender<SyncStatus>,
+    session: Arc<AddressSession>,
     address: String,
 ) -> Result<(), AppError> {
     // Convert the address str to Address struct instance of Solana account
@@ -425,11 +399,9 @@ pub async fn refresher(
     .await?;
 
     // Send the updated account data to the channel
-    send_sync_message(
-        &sender,
-        SyncStatus::AccountData(serde_json::to_string(&updated)?),
-    )
-    .await;
+    session
+        .emit_event(SyncStatus::AccountData(serde_json::to_string(&updated)?))
+        .await;
 
     // Get the latest signature to continue the sync/refresh
     let latest_signature = get_latest_signature(&state.db, address.clone()).await?;
@@ -437,7 +409,7 @@ pub async fn refresher(
 
     continue_sync(
         state,
-        sender,
+        session,
         address,
         public_key,
         None,

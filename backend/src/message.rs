@@ -1,5 +1,5 @@
 // SyncStatus enum is used in SSE API communication
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum SyncStatus {
     Started,
     AccountData(String),
