@@ -38,7 +38,8 @@ pub async fn account_status(
 
 fn sync_message_to_event(msg: SyncStatus) -> Event {
     match msg {
-        SyncStatus::Started => Event::default().event("started"),
+        SyncStatus::Indexing => Event::default().event("indexing").data("started"),
+        SyncStatus::Syncing => Event::default().event("syncing").data("started"),
         SyncStatus::AccountData(data) => Event::default().event("account-data").data(data),
         SyncStatus::TransactionSignatures(data) => {
             Event::default().event("signatures-fetched").data(data)
@@ -47,7 +48,7 @@ fn sync_message_to_event(msg: SyncStatus) -> Event {
             Event::default().event("transactions-fetched").data(data)
         }
         SyncStatus::Error(message) => Event::default().event("error").data(message),
-        SyncStatus::Completed => Event::default().event("close"),
+        SyncStatus::Completed => Event::default().event("close").data("close the connection"),
     }
 }
 
