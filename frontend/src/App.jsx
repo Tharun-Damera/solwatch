@@ -31,10 +31,12 @@ export default function App() {
     const res = await fetch(`${BASE_URL}/api/accounts/${addr}/status`, {
       method: "GET",
     });
-    if (res.ok) {
-      setIndexed(true);
-    } else {
+    const data = await res.json();
+    console.log(data);
+    if (!res.ok || data.state == "indexing") {
       setIndexed(false);
+    } else {
+      setIndexed(true);
     }
     setLoading(false);
   }

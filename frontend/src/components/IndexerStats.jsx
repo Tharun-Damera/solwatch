@@ -18,16 +18,20 @@ export default function IndexerStats({
 
   const sseRef = useRef(null);
 
-  async function startSSE(url, isRefresh) {
+  async function startSSE(url) {
     if (sseRef.current) sseRef.current.close();
 
+    setLoading(true);
     const sse = new EventSource(url);
     sseRef.current = sse;
 
-    const custom_state = isRefresh ? "🔁 Syncing" : "▶️ Running";
+    sse.addEventListener("indexing", () => {
+      setState("▶️ Running");
+      setAccountFetched(false);
+    });
 
-    sse.addEventListener("started", () => {
-      setState(custom_state);
+    sse.addEventListener("syncing", () => {
+      setState("🔁 Syncing");
       setAccountFetched(false);
     });
 
@@ -64,6 +68,7 @@ export default function IndexerStats({
   }
 
   async function getIdleStats() {
+    setLoading(true);
     try {
       const res = await fetch(
         `${BASE_URL}/api/accounts/${address}/indexer/stats`
@@ -75,23 +80,22 @@ export default function IndexerStats({
     } catch (err) {
       setError(err.message);
     }
+    setLoading(false);
   }
 
   async function onRefresh() {
-    startSSE(`${BASE_URL}/api/accounts/${address}/refresh/sse`, true);
+    startSSE(`${BASE_URL}/api/accounts/${address}/refresh/sse`);
   }
 
   useEffect(() => {
     if (!address) return;
 
     function run() {
-      setLoading(true);
       if (indexed) {
         getIdleStats();
       } else {
-        startSSE(`${BASE_URL}/api/accounts/${address}/index/sse`, false);
+        startSSE(`${BASE_URL}/api/accounts/${address}/index/sse`);
       }
-      setLoading(false);
     }
 
     run();
