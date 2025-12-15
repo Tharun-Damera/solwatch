@@ -9,8 +9,13 @@ pub fn setup_cors_layer() -> CorsLayer {
     // Convert the origins string to a vector of HeaderValue
     let allowed_origins: Vec<HeaderValue> = allowed_origins_str
         .split(",")
-        .map(|s| s.trim().parse::<HeaderValue>().unwrap())
-        .collect();
+        .map(|s| {
+            s.trim()
+                .parse::<HeaderValue>()
+                .map_err(|e| format!("Invalid Origin '{}': {}", s, e))
+        })
+        .collect::<Result<_, _>>()
+        .expect("Invalid Allowed origins configuration");
 
     // Create a CorsLayer that
     CorsLayer::new()
