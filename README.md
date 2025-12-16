@@ -83,12 +83,12 @@ sequenceDiagram
     participant S as Solana RPC
     participant D as Database
     
-    C->>B: GET /api/accounts/{address}/status
+    C->>B: Enter Solana Address <br/>GET /api/accounts/{address}/status
     B->>D: Check Address State
     D->>B: Address Not Found
     B->>C: error: Address Not Found
     
-    C->>B: SSE /api/accounts/{address}/index/sse
+    C->>B: Start Indexing <br/>SSE /api/accounts/{address}/index/sse
     
     alt Invalid Address
         B->>C: error: Invalid address
@@ -111,7 +111,7 @@ sequenceDiagram
             B->>D: Store signatures
             B->>C: event: signatures-fetched
             
-            Note over C,B: Client can now call:<br/>GET /api/accounts/{address}/signatures
+            Note over C,B: Client can now call:<br/>Get Transaction History (Signatures) <br/>GET /api/accounts/{address}/signatures
             
             loop For each signature
                 B->>S: get_transaction(signature)
