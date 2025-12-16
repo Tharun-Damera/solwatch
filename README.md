@@ -1,5 +1,17 @@
-# Solwatch 🛰️ (Still in Development)
-A minimal and fast lazy indexer for the Solana blockchain.
+# Solwatch 🛰️
+An on-demand Solana wallet indexer that fetches, caches, and serves on-chain data with streamed indexing progress.
+
+## Motivation
+
+Solwatch is an on-demand indexing service designed to explore backend system design in Rust.
+Instead of continuously indexing the blockchain, data is fetched and synchronized only when requested,
+then cached and served from a database for subsequent reads.
+
+The project focuses on:
+- async Rust and concurrency
+- background indexing tasks with progress updates
+- SSE-based event delivery
+- stateful indexing workflows
 
 ## Technologies
 - **Backend:** Rust (Axum, Tokio)
@@ -9,7 +21,7 @@ A minimal and fast lazy indexer for the Solana blockchain.
 
 ## High-Level Architecture
 ```
-Title: Solwatch - A Lazy Solana Indexer Architecture
+Title: Solwatch - An on-demand Solana Indexer Architecture
 
 Components:
 ├── Frontend Layer
@@ -96,7 +108,8 @@ The system handles three main scenarios:
 2. **Cached Data Access** - When data already exists in the database
 3. **Refresh/Sync** - When updating an indexed address with latest data
 
-## Detailed Flows
+<details>
+<summary>Detailed Flows</summary>
 
 ### 1. Initial Indexing Flow
 When a new address is indexed, the system:
@@ -105,7 +118,7 @@ When a new address is indexed, the system:
 - Stores the account in the database
 - Fetches the latest 20 transactions immediately for quick display
 - Continues fetching remaining transactions in batches of 1000
-- Sends real-time progress updates via SSE
+- Sends event-driven progress updates via SSE
 ```mermaid
 sequenceDiagram
     actor C as Client
@@ -250,4 +263,5 @@ sequenceDiagram
     B->>D: Update Address State (state='idle')
     B->>C: event: close
 ```
+</details>
 
