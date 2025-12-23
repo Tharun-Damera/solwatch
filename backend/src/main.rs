@@ -42,8 +42,8 @@ async fn main() -> Result<(), error::AppError> {
     let app = routes::create_router(state);
 
     // Get the host and port from env
-    let host = std::env::var("APP_HOST")?;
-    let port = std::env::var("APP_PORT")?;
+    let host = std::env::var("APP_HOST").expect("APP_HOST env variable is mising");
+    let port = std::env::var("APP_PORT").expect("APP_PORT env variable is mising");
     let bind = format!("{}:{}", host, port);
     event!(Level::INFO, "[+] Server running on {bind:?}...");
 
